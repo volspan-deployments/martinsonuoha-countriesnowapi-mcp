@@ -6,6 +6,7 @@ import threading
 from fastmcp import FastMCP
 import httpx
 import os
+from typing import Optional
 
 mcp = FastMCP("CountriesNow API")
 
@@ -14,7 +15,7 @@ BASE_URL = "https://countriesnow.space/api/v0.1/countries"
 
 @mcp.tool()
 async def get_countries() -> dict:
-    """Retrieve a list of all countries with their cities. Use this when the user wants a full list of countries, or wants to explore available country data in the API."""
+    """Retrieve a list of all countries with their cities. Use this as a starting point when the user needs a full list of countries or wants to explore available country data."""
     _track("get_countries")
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.get(f"{BASE_URL}")
@@ -24,10 +25,10 @@ async def get_countries() -> dict:
 
 @mcp.tool()
 async def get_country_cities(country: str) -> dict:
-    """Retrieve all cities for a specific country. Use this when the user wants to know what cities exist in a given country.
-
+    """Retrieve all cities for a specific country. Use this when the user wants to know the cities within a particular country.
+    
     Args:
-        country: The name of the country to retrieve cities for (e.g., 'Nigeria', 'United States').
+        country: The name of the country to fetch cities for (e.g. 'Nigeria', 'Canada')
     """
     _track("get_country_cities")
     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -41,10 +42,10 @@ async def get_country_cities(country: str) -> dict:
 
 @mcp.tool()
 async def get_country_states(country: str) -> dict:
-    """Retrieve all states or provinces for a specific country. Use this when the user needs administrative divisions (states, provinces, regions) of a country.
-
+    """Retrieve all states or provinces for a specific country. Use this when the user asks about administrative divisions, regions, or states of a country.
+    
     Args:
-        country: The name of the country to retrieve states/provinces for (e.g., 'Canada', 'India').
+        country: The name of the country to fetch states for (e.g. 'United States', 'India')
     """
     _track("get_country_states")
     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -58,11 +59,11 @@ async def get_country_states(country: str) -> dict:
 
 @mcp.tool()
 async def get_state_cities(country: str, state: str) -> dict:
-    """Retrieve all cities within a specific state of a country. Use this when the user wants cities filtered by both country and state/province.
-
+    """Retrieve all cities within a specific state of a country. Use this when the user wants city-level data scoped to a particular state or province.
+    
     Args:
-        country: The name of the country (e.g., 'United States').
-        state: The name of the state or province within the country (e.g., 'California').
+        country: The name of the country the state belongs to (e.g. 'United States')
+        state: The name of the state to fetch cities for (e.g. 'California')
     """
     _track("get_state_cities")
     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -76,10 +77,10 @@ async def get_state_cities(country: str, state: str) -> dict:
 
 @mcp.tool()
 async def get_country_capital(country: str) -> dict:
-    """Retrieve the capital city of a specific country. Use this when the user asks about the capital of a country.
-
+    """Retrieve the capital city of a specific country. Use this when the user asks about a country's capital.
+    
     Args:
-        country: The name of the country to look up the capital for (e.g., 'France', 'Brazil').
+        country: The name of the country to fetch the capital for (e.g. 'France', 'Brazil')
     """
     _track("get_country_capital")
     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -92,43 +93,56 @@ async def get_country_capital(country: str) -> dict:
 
 
 @mcp.tool()
-async def get_country_by_code(code: str) -> dict:
-    """Retrieve country details using an ISO country code (e.g., dial code or ISO alpha code). Use this when the user provides a country code and wants to find the matching country information.
-
+async def get_country_dial_codes(country: Optional[str] = None) -> dict:
+    """Retrieve dial codes (phone country codes) for all countries or a specific country. Use this when the user needs international dialing codes or phone prefixes.
+    
     Args:
-        code: The ISO country code or dial code to look up (e.g., 'NG', 'US', '+234').
+        country: Optional country name to filter dial code for a specific country (e.g. 'Germany'). Omit to get all country dial codes.
     """
-    _track("get_country_by_code")
+    _track("get_country_dial_codes")
     async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(
-            f"{BASE_URL}/codes",
-            params={"code": code}
-        )
+        if country:
+            response = await client.post(
+                f"{BASE_URL}/codes",
+                json={"country": country}
+            )
+        else:
+            response = await client.get(f"{BASE_URL}/codes")
         response.raise_for_status()
         return response.json()
 
 
 @mcp.tool()
-async def get_countries_dial_codes() -> dict:
-    """Retrieve a list of all countries along with their international dial codes. Use this when the user needs phone dial codes or wants to map countries to their calling codes."""
-    _track("get_countries_dial_codes")
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(f"{BASE_URL}/codes/all")
-        response.raise_for_status()
-        return response.json()
-
-
-@mcp.tool()
-async def get_country_currency(country: str) -> dict:
-    """Retrieve the currency information (name, symbol, code) for a specific country. Use this when the user asks about the currency used in a particular country.
-
+async def get_country_currency(country: Optional[str] = None) -> dict:
+    """Retrieve currency information for a specific country or all countries. Use this when the user asks about what currency a country uses or needs currency codes.
+    
     Args:
-        country: The name of the country to retrieve currency information for (e.g., 'Japan', 'Germany').
+        country: Optional country name to get currency for a specific country (e.g. 'Japan'). Omit to get currencies for all countries.
     """
     _track("get_country_currency")
     async with httpx.AsyncClient(timeout=30.0) as client:
+        if country:
+            response = await client.post(
+                f"{BASE_URL}/currency",
+                json={"country": country}
+            )
+        else:
+            response = await client.get(f"{BASE_URL}/currency")
+        response.raise_for_status()
+        return response.json()
+
+
+@mcp.tool()
+async def get_country_flag(country: str) -> dict:
+    """Retrieve the flag image URL or unicode for a specific country. Use this when the user wants to display or reference a country's flag.
+    
+    Args:
+        country: The name of the country to fetch the flag for (e.g. 'Australia', 'Mexico')
+    """
+    _track("get_country_flag")
+    async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.post(
-            f"{BASE_URL}/currency",
+            f"{BASE_URL}/flag/images",
             json={"country": country}
         )
         response.raise_for_status()
@@ -138,6 +152,18 @@ async def get_country_currency(country: str) -> dict:
 
 
 _SERVER_SLUG = "martinsonuoha-countriesnowapi"
+_REQUIRES_AUTH = False
+
+def _get_api_key() -> str:
+    """Get API key from environment. Clients pass keys via MCP config headers."""
+    return os.environ.get("API_KEY", "")
+
+def _auth_headers() -> dict:
+    """Build authorization headers for upstream API calls."""
+    key = _get_api_key()
+    if not key:
+        return {}
+    return {"Authorization": f"Bearer {key}", "X-API-Key": key}
 
 def _track(tool_name: str, ua: str = ""):
     import threading
